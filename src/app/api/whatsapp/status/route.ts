@@ -30,7 +30,10 @@ export async function GET() {
   const serviceUrl = process.env.WHATSAPP_SERVICE_URL ?? "http://localhost:3001";
 
   try {
-    const res = await fetch(`${serviceUrl}/status`, { next: { revalidate: 0 } });
+    const res = await fetch(`${serviceUrl}/status`, {
+      next: { revalidate: 0 },
+      headers: { "ngrok-skip-browser-warning": "true" },
+    });
     const data = await res.json();
     return NextResponse.json(data);
   } catch {
