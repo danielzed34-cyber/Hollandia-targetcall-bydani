@@ -7,6 +7,9 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/supabase";
+
+type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
 
 export const runtime = "nodejs";
 
@@ -28,7 +31,7 @@ export async function GET() {
   const myTargetTaskIds = new Set((myTargets ?? []).map((t) => t.task_id));
   const completedTaskIds = new Set((myCompletions ?? []).map((c) => c.task_id));
 
-  const pending = (allTasks ?? []).filter((t) => {
+  const pending = ((allTasks ?? []) as TaskRow[]).filter((t) => {
     const isAssigned = t.target_all || myTargetTaskIds.has(t.id);
     return isAssigned && !completedTaskIds.has(t.id);
   });

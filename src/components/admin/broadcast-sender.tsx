@@ -118,7 +118,7 @@ export function BroadcastSender() {
             </div>
 
             {!targetAll && (
-              <Select value={targetUserId} onValueChange={setTargetUserId} disabled={sending}>
+              <Select value={targetUserId} onValueChange={(v) => setTargetUserId(v ?? "")} disabled={sending}>
                 <SelectTrigger className="mt-1">
                   <SelectValue placeholder="בחר נציג..." />
                 </SelectTrigger>

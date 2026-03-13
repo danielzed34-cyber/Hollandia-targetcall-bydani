@@ -49,8 +49,6 @@ export function BroadcastModal() {
     <Dialog open onOpenChange={() => {}}>
       <DialogContent
         className="max-w-sm"
-        onInteractOutside={(e) => e.preventDefault()}
-        onEscapeKeyDown={(e) => e.preventDefault()}
       >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">

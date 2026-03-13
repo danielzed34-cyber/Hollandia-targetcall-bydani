@@ -7,6 +7,11 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/supabase";
+
+type TaskRow = Database["public"]["Tables"]["tasks"]["Row"];
+type TaskTargetRow = Database["public"]["Tables"]["task_targets"]["Row"];
+type TaskCompletionRow = Database["public"]["Tables"]["task_completions"]["Row"];
 
 export const runtime = "nodejs";
 
@@ -43,9 +48,9 @@ export async function GET() {
     nameById[p.id] = (p.nickname ?? p.full_name) as string;
   }
 
-  const enriched = (tasks ?? []).map((t) => {
-    const taskTargets = (targets ?? []).filter((tt) => tt.task_id === t.id);
-    const taskCompletions = (completions ?? []).filter((tc) => tc.task_id === t.id);
+  const enriched = ((tasks ?? []) as TaskRow[]).map((t) => {
+    const taskTargets = ((targets ?? []) as TaskTargetRow[]).filter((tt) => tt.task_id === t.id);
+    const taskCompletions = ((completions ?? []) as TaskCompletionRow[]).filter((tc) => tc.task_id === t.id);
     return {
       ...t,
       targetUserIds: taskTargets.map((tt) => tt.user_id),
@@ -89,12 +94,12 @@ export async function POST(request: NextRequest) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error || !task) return NextResponse.json({ error: error?.message ?? "Insert failed" }, { status: 500 });
 
   // Insert specific targets if needed
   if (!body.target_all && body.target_user_ids?.length) {
     await db.from("task_targets").insert(
-      body.target_user_ids.map((uid) => ({ task_id: task.id, user_id: uid }))
+      body.target_user_ids.map((uid) => ({ task_id: (task as TaskRow).id, user_id: uid }))
     );
   }
 

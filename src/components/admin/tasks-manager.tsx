@@ -75,7 +75,7 @@ function CompletionDialog({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          message: `🔔 תזכורת דחופה: יש לבצע את המשימה "${task.title}"`,
+          message: `🔔 תזכורת דחופה: יש לבצע את המשימה "${task!.title}"`,
           target_all: false,
           target_user_id: userId,
         }),

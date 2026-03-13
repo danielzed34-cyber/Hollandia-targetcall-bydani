@@ -7,6 +7,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
+import type { Database } from "@/types/supabase";
+
+type BroadcastRow = Database["public"]["Tables"]["broadcasts"]["Row"];
 
 export const runtime = "nodejs";
 
@@ -41,7 +44,7 @@ export async function GET() {
     nameById[p.id] = (p.nickname ?? p.full_name) as string;
   }
 
-  const enriched = (broadcasts ?? []).map((b) => ({
+  const enriched = ((broadcasts ?? []) as BroadcastRow[]).map((b) => ({
     ...b,
     target_user_name: b.target_user_id ? (nameById[b.target_user_id] ?? b.target_user_id) : null,
   }));
