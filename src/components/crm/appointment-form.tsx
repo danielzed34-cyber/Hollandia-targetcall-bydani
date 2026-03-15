@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { useProductivityStore } from "@/stores/productivity-store";
@@ -57,6 +57,23 @@ export function AppointmentForm() {
   const [editedMessage, setEditedMessage] = useState("");
   const [sendingWA, setSendingWA] = useState(false);
 
+  // Animation state
+  const [counterPop, setCounterPop] = useState(false);
+  const [counterFlash, setCounterFlash] = useState(false);
+  const [showGoalCelebration, setShowGoalCelebration] = useState(false);
+  const [personalGoal, setPersonalGoal] = useState<number | null>(null);
+  const celebratedRef = useRef(false);
+
+  // Fetch goal once on mount
+  useEffect(() => {
+    fetch("/api/goals")
+      .then((r) => r.ok ? r.json() : null)
+      .then((d: { personalGoal: number | null } | null) => {
+        if (d?.personalGoal) setPersonalGoal(d.personalGoal);
+      })
+      .catch(() => {});
+  }, []);
+
   function set(field: keyof FormState, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
   }
@@ -102,8 +119,47 @@ export function AppointmentForm() {
       });
 
       incrementAppointments();
+      const newCount = appointmentsToday + 1;
       setLastBooked(`${form.customerName} | ${form.branch} | ${form.meetingDate} ${form.meetingTime}`);
       setForm(EMPTY);
+
+      // ── Per-appointment animation ──────────────────────────
+      setCounterPop(true);
+      setCounterFlash(true);
+      setTimeout(() => setCounterPop(false), 500);
+      setTimeout(() => setCounterFlash(false), 800);
+
+      import("canvas-confetti").then(({ default: confetti }) => {
+        // Mini burst from the counter area
+        void confetti({
+          particleCount: 18,
+          spread: 60,
+          origin: { x: 0.82, y: 0.5 },
+          startVelocity: 30,
+          gravity: 0.9,
+          colors: ["#4FA8FF", "#34d399", "#fbbf24", "#f472b6", "#a78bfa"],
+        });
+      }).catch(() => {});
+
+      // ── Goal reached celebration ───────────────────────────
+      if (personalGoal && newCount >= personalGoal && !celebratedRef.current) {
+        celebratedRef.current = true;
+        const today = new Date().toISOString().split("T")[0];
+        try { sessionStorage.setItem(`goal_celebrated_${today}`, "1"); } catch { /* ignore */ }
+
+        setTimeout(() => setShowGoalCelebration(true), 400);
+        setTimeout(() => setShowGoalCelebration(false), 5500);
+
+        import("canvas-confetti").then(({ default: confetti }) => {
+          // Fireworks sequence
+          const fire = (opts: Parameters<typeof confetti>[0]) => void confetti(opts);
+          setTimeout(() => fire({ particleCount: 150, spread: 80, origin: { x: 0.3, y: 0.6 }, colors: ["#fbbf24", "#f59e0b", "#fff"] }), 500);
+          setTimeout(() => fire({ particleCount: 150, spread: 80, origin: { x: 0.7, y: 0.6 }, colors: ["#34d399", "#10b981", "#fff"] }), 750);
+          setTimeout(() => fire({ particleCount: 100, spread: 100, origin: { x: 0.5, y: 0.3 }, colors: ["#f472b6", "#a78bfa", "#fff"] }), 1100);
+          setTimeout(() => fire({ particleCount: 80,  spread: 60,  origin: { x: 0.2, y: 0.5 }, colors: ["#4FA8FF", "#60a5fa"] }), 1500);
+          setTimeout(() => fire({ particleCount: 80,  spread: 60,  origin: { x: 0.8, y: 0.5 }, colors: ["#fbbf24", "#f59e0b"] }), 1800);
+        }).catch(() => {});
+      }
 
       // Show WA confirmation panel
       setPendingWA({ phone: form.phone, message: waMessage });
@@ -149,8 +205,47 @@ export function AppointmentForm() {
     setEditingWA(false);
   }
 
+  const firstName = (profile?.nickname ?? profile?.full_name)?.split(" ")[0] ?? "";
+
   return (
-    <div className="grid gap-6 lg:grid-cols-3">
+    <div className="relative grid gap-6 lg:grid-cols-3">
+
+      {/* ── Goal celebration overlay ───────────────────────── */}
+      {showGoalCelebration && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center pointer-events-none">
+          <div
+            className="pointer-events-auto flex flex-col items-center gap-4 rounded-3xl px-12 py-10 text-center"
+            onClick={() => setShowGoalCelebration(false)}
+            style={{
+              background: "linear-gradient(135deg, #0D2242 0%, #0A1530 100%)",
+              border: "2px solid rgba(201,168,76,0.7)",
+              boxShadow: "0 32px 80px rgba(0,0,0,0.7), 0 0 80px rgba(201,168,76,0.25)",
+              animation: "goalPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards",
+            }}
+          >
+            <div style={{ fontSize: "72px", lineHeight: 1, animation: "spin 0.6s ease-out" }}>🏆</div>
+            <div>
+              <p className="text-3xl font-black text-white">הגעת ליעד!</p>
+              <p className="text-lg font-bold mt-1" style={{ color: "#C9A84C" }}>
+                {appointmentsToday + 1} / {personalGoal} פגישות
+              </p>
+            </div>
+            <p className="text-base text-blue-200/70">כל הכבוד {firstName}! 🎉</p>
+            <p className="text-xs text-white/30 mt-1">לחץ לסגור</p>
+          </div>
+          <style>{`
+            @keyframes goalPop {
+              0%   { transform: scale(0.3) rotate(-10deg); opacity: 0; }
+              60%  { transform: scale(1.08) rotate(2deg);  opacity: 1; }
+              100% { transform: scale(1)    rotate(0deg);  opacity: 1; }
+            }
+            @keyframes spin {
+              0%   { transform: rotate(-20deg) scale(0.5); }
+              100% { transform: rotate(0deg)   scale(1);   }
+            }
+          `}</style>
+        </div>
+      )}
       {/* ── Main form ──────────────────────────────────── */}
       <Card className="lg:col-span-2">
         <CardHeader>
@@ -375,10 +470,36 @@ export function AppointmentForm() {
         )}
 
         {/* Today's counter */}
-        <Card>
+        <Card
+          className="transition-all duration-300 overflow-hidden"
+          style={{
+            boxShadow: counterFlash
+              ? "0 0 0 3px #34d399, 0 8px 32px rgba(52,211,153,0.3)"
+              : undefined,
+            border: counterFlash ? "1px solid #34d399" : undefined,
+          }}
+        >
           <CardContent className="pt-6 text-center space-y-1">
-            <CalendarCheck className="mx-auto h-8 w-8 text-primary opacity-80" />
-            <p className="text-4xl font-bold tabular-nums">{appointmentsToday}</p>
+            <CalendarCheck
+              className="mx-auto h-8 w-8 opacity-80"
+              style={{ color: counterFlash ? "#34d399" : undefined, transition: "color 0.3s" }}
+            />
+            <p
+              className="text-4xl font-bold tabular-nums"
+              style={{
+                transform: counterPop ? "scale(1.45)" : "scale(1)",
+                transition: "transform 0.25s cubic-bezier(0.34,1.56,0.64,1)",
+                display: "inline-block",
+                color: counterFlash ? "#34d399" : undefined,
+              }}
+            >
+              {appointmentsToday}
+            </p>
+            {personalGoal && (
+              <p className="text-xs font-semibold text-muted-foreground">
+                מתוך {personalGoal} יעד
+              </p>
+            )}
             <p className="text-sm text-muted-foreground">פגישות קבעת היום</p>
           </CardContent>
         </Card>

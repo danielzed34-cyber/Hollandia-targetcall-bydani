@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { INTERNAL_EMAIL_DOMAIN } from "@/config/external-links";
 import { toast } from "sonner";
-import { Loader2, LogIn, User, Lock } from "lucide-react";
+import { Loader2, LogIn, User, Lock, UserPlus, Type, CheckCircle2 } from "lucide-react";
 
 const STARS = [
   [8,15,2,"0s","3.2s"],[14,88,1.5,"1.1s","2.8s"],[22,42,1.8,"0.4s","3.8s"],
@@ -48,10 +48,22 @@ const METEORS = [
 ];
 
 export function LoginForm() {
+  const [mode, setMode] = useState<"login" | "register">("login");
+
+  // Login state
   const [username, setUsername] = useState("");
-  const [password, setPassword]   = useState("");
-  const [loading,  setLoading]    = useState(false);
-  const [focused,  setFocused]    = useState<string | null>(null);
+  const [password, setPassword] = useState("");
+  const [loading,  setLoading]  = useState(false);
+  const [focused,  setFocused]  = useState<string | null>(null);
+
+  // Register state
+  const [regUsername,    setRegUsername]    = useState("");
+  const [regFullName,    setRegFullName]    = useState("");
+  const [regPassword,    setRegPassword]    = useState("");
+  const [regConfirm,     setRegConfirm]     = useState("");
+  const [regLoading,     setRegLoading]     = useState(false);
+  const [regSuccess,     setRegSuccess]     = useState(false);
+
   const router = useRouter();
 
   async function handleSubmit(e: React.FormEvent) {
@@ -68,6 +80,42 @@ export function LoginForm() {
     }
     router.push("/dashboard");
     router.refresh();
+  }
+
+  async function handleRegister(e: React.FormEvent) {
+    e.preventDefault();
+
+    if (!regUsername.trim() || !regFullName.trim() || !regPassword || !regConfirm) {
+      toast.error("יש למלא את כל השדות"); return;
+    }
+    if (!/^[a-zA-Z0-9._-]+$/.test(regUsername)) {
+      toast.error("שם משתמש חייב להכיל אותיות אנגלית בלבד"); return;
+    }
+    if (!/^[\u0590-\u05FF\s'"״׳-]+$/.test(regFullName.trim())) {
+      toast.error("שם מלא חייב להיות בעברית"); return;
+    }
+    if (regPassword.length < 6) {
+      toast.error("סיסמה חייבת להכיל לפחות 6 תווים"); return;
+    }
+    if (regPassword !== regConfirm) {
+      toast.error("הסיסמאות אינן תואמות"); return;
+    }
+
+    setRegLoading(true);
+    try {
+      const res = await fetch("/api/auth/register-request", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: regUsername, fullName: regFullName, password: regPassword }),
+      });
+      const data = await res.json() as { error?: string };
+      if (!res.ok) { toast.error(data.error ?? "שגיאה בשליחת הבקשה"); return; }
+      setRegSuccess(true);
+    } catch {
+      toast.error("שגיאה בשליחת הבקשה");
+    } finally {
+      setRegLoading(false);
+    }
   }
 
   return (
@@ -320,6 +368,32 @@ export function LoginForm() {
           display:flex;align-items:center;justify-content:center;gap:6px;
           font-size:11px;color:rgba(255,255,255,.22);letter-spacing:.04em;
         }
+
+        /* ═══ MODE TABS ═══════════════════════════════════════════════ */
+        .lp-tabs {
+          display:flex;gap:6px;padding:0 50px 4px;
+        }
+        .lp-tab {
+          flex:1;height:42px;border-radius:14px;border:none;cursor:pointer;
+          font-size:13px;font-weight:700;letter-spacing:.04em;
+          transition:background .2s,color .2s,box-shadow .2s;
+        }
+        .lp-tab-active {
+          background:rgba(201,168,76,.14);
+          color:rgba(201,168,76,.95);
+          box-shadow:0 0 0 1px rgba(201,168,76,.3);
+        }
+        .lp-tab-inactive {
+          background:rgba(255,255,255,.04);
+          color:rgba(255,255,255,.3);
+        }
+        .lp-tab-inactive:hover { background:rgba(255,255,255,.07);color:rgba(255,255,255,.5); }
+
+        /* Success state */
+        .lp-success {
+          display:flex;flex-direction:column;align-items:center;gap:14px;
+          padding:28px 50px 46px;text-align:center;
+        }
       `}</style>
 
       <div className="lp">
@@ -418,39 +492,136 @@ export function LoginForm() {
             <div className="lp-sep-r" />
           </div>
 
-          {/* Form */}
-          <div className="lp-form">
-            <form onSubmit={handleSubmit} noValidate style={{ display:"flex", flexDirection:"column", gap:16 }}>
-              <div>
-                <label htmlFor="username" className="lp-lbl">שם משתמש</label>
-                <div className="lp-iw">
-                  <User className={`lp-ico ${focused==="username"?"on":""}`} />
-                  <input id="username" type="text" dir="ltr" placeholder="username"
-                    value={username} onChange={e=>setUsername(e.target.value)}
-                    onFocus={()=>setFocused("username")} onBlur={()=>setFocused(null)}
-                    autoComplete="username" required disabled={loading} className="lp-inp" />
-                </div>
-              </div>
-              <div>
-                <label htmlFor="password" className="lp-lbl">סיסמה</label>
-                <div className="lp-iw">
-                  <Lock className={`lp-ico ${focused==="password"?"on":""}`} />
-                  <input id="password" type="password" dir="ltr" placeholder="••••••••"
-                    value={password} onChange={e=>setPassword(e.target.value)}
-                    onFocus={()=>setFocused("password")} onBlur={()=>setFocused(null)}
-                    autoComplete="current-password" required disabled={loading} className="lp-inp" />
-                </div>
-              </div>
-
-              <button type="submit" disabled={loading} className="lp-btn" style={{ marginTop:6 }}>
-                {loading
-                  ? <><Loader2 style={{ width:18, height:18, animation:"spinIcon 1s linear infinite" }} />מתחבר...</>
-                  : <><LogIn style={{ width:18, height:18 }} />כניסה למערכת</>
-                }
-              </button>
-
-            </form>
+          {/* Mode Tabs */}
+          <div className="lp-tabs">
+            <button
+              type="button"
+              className={`lp-tab ${mode==="login" ? "lp-tab-active" : "lp-tab-inactive"}`}
+              onClick={() => { setMode("login"); setRegSuccess(false); }}
+            >
+              כניסה
+            </button>
+            <button
+              type="button"
+              className={`lp-tab ${mode==="register" ? "lp-tab-active" : "lp-tab-inactive"}`}
+              onClick={() => { setMode("register"); setRegSuccess(false); }}
+            >
+              הרשמה
+            </button>
           </div>
+
+          {/* ── LOGIN FORM ─── */}
+          {mode === "login" && (
+            <div className="lp-form">
+              <form onSubmit={handleSubmit} noValidate style={{ display:"flex", flexDirection:"column", gap:16 }}>
+                <div>
+                  <label htmlFor="username" className="lp-lbl">שם משתמש</label>
+                  <div className="lp-iw">
+                    <User className={`lp-ico ${focused==="username"?"on":""}`} />
+                    <input id="username" type="text" dir="ltr" placeholder="username"
+                      value={username} onChange={e=>setUsername(e.target.value)}
+                      onFocus={()=>setFocused("username")} onBlur={()=>setFocused(null)}
+                      autoComplete="username" required disabled={loading} className="lp-inp" />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="password" className="lp-lbl">סיסמה</label>
+                  <div className="lp-iw">
+                    <Lock className={`lp-ico ${focused==="password"?"on":""}`} />
+                    <input id="password" type="password" dir="ltr" placeholder="••••••••"
+                      value={password} onChange={e=>setPassword(e.target.value)}
+                      onFocus={()=>setFocused("password")} onBlur={()=>setFocused(null)}
+                      autoComplete="current-password" required disabled={loading} className="lp-inp" />
+                  </div>
+                </div>
+                <button type="submit" disabled={loading} className="lp-btn" style={{ marginTop:6 }}>
+                  {loading
+                    ? <><Loader2 style={{ width:18, height:18, animation:"spinIcon 1s linear infinite" }} />מתחבר...</>
+                    : <><LogIn style={{ width:18, height:18 }} />כניסה למערכת</>
+                  }
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* ── REGISTER FORM ─── */}
+          {mode === "register" && !regSuccess && (
+            <div className="lp-form">
+              <form onSubmit={handleRegister} noValidate style={{ display:"flex", flexDirection:"column", gap:16 }}>
+                <div>
+                  <label htmlFor="reg-username" className="lp-lbl">שם משתמש (אנגלית)</label>
+                  <div className="lp-iw">
+                    <User className={`lp-ico ${focused==="reg-username"?"on":""}`} />
+                    <input id="reg-username" type="text" dir="ltr" placeholder="your.username"
+                      value={regUsername} onChange={e=>setRegUsername(e.target.value)}
+                      onFocus={()=>setFocused("reg-username")} onBlur={()=>setFocused(null)}
+                      autoComplete="username" required disabled={regLoading} className="lp-inp" />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="reg-fullname" className="lp-lbl">שם מלא (עברית)</label>
+                  <div className="lp-iw">
+                    <Type className={`lp-ico ${focused==="reg-fullname"?"on":""}`} />
+                    <input id="reg-fullname" type="text" dir="rtl" placeholder="ישראל ישראלי"
+                      value={regFullName} onChange={e=>setRegFullName(e.target.value)}
+                      onFocus={()=>setFocused("reg-fullname")} onBlur={()=>setFocused(null)}
+                      required disabled={regLoading} className="lp-inp" style={{ paddingRight:16, paddingLeft:16, textAlign:"right" }} />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="reg-password" className="lp-lbl">סיסמה</label>
+                  <div className="lp-iw">
+                    <Lock className={`lp-ico ${focused==="reg-password"?"on":""}`} />
+                    <input id="reg-password" type="password" dir="ltr" placeholder="לפחות 6 תווים"
+                      value={regPassword} onChange={e=>setRegPassword(e.target.value)}
+                      onFocus={()=>setFocused("reg-password")} onBlur={()=>setFocused(null)}
+                      required disabled={regLoading} className="lp-inp" />
+                  </div>
+                </div>
+                <div>
+                  <label htmlFor="reg-confirm" className="lp-lbl">אימות סיסמה</label>
+                  <div className="lp-iw">
+                    <Lock className={`lp-ico ${focused==="reg-confirm"?"on":""}`} />
+                    <input id="reg-confirm" type="password" dir="ltr" placeholder="חזור על הסיסמה"
+                      value={regConfirm} onChange={e=>setRegConfirm(e.target.value)}
+                      onFocus={()=>setFocused("reg-confirm")} onBlur={()=>setFocused(null)}
+                      required disabled={regLoading} className="lp-inp" />
+                  </div>
+                </div>
+                <button type="submit" disabled={regLoading} className="lp-btn" style={{ marginTop:6 }}>
+                  {regLoading
+                    ? <><Loader2 style={{ width:18, height:18, animation:"spinIcon 1s linear infinite" }} />שולח...</>
+                    : <><UserPlus style={{ width:18, height:18 }} />שליחת בקשת הרשמה</>
+                  }
+                </button>
+              </form>
+            </div>
+          )}
+
+          {/* ── REGISTER SUCCESS ─── */}
+          {mode === "register" && regSuccess && (
+            <div className="lp-success">
+              <CheckCircle2 style={{ width:52, height:52, color:"rgba(201,168,76,0.9)" }} />
+              <div>
+                <p style={{ fontSize:17, fontWeight:800, color:"white", marginBottom:8 }}>
+                  הבקשה נשלחה בהצלחה!
+                </p>
+                <p style={{ fontSize:13, color:"rgba(255,255,255,0.4)", lineHeight:1.6 }}>
+                  בקשת ההרשמה שלך הועברה למנהל לאישור.<br />
+                  לאחר האישור תוכל להתחבר עם הפרטים שהזנת.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => { setMode("login"); setRegSuccess(false); }}
+                className="lp-btn"
+                style={{ marginTop:4 }}
+              >
+                <LogIn style={{ width:18, height:18 }} />
+                חזרה לכניסה
+              </button>
+            </div>
+          )}
         </div>
 
         <p style={{ position:"relative", fontSize:11, color:"rgba(255,255,255,0.15)", textAlign:"center" }}>

@@ -3,6 +3,7 @@
 import { AuthProvider } from "@/contexts/auth-context";
 import { Sidebar } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/header";
+import { CommandPalette } from "@/components/layout/command-palette";
 
 export default function DashboardLayout({
   children,
@@ -11,6 +12,7 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthProvider>
+      <CommandPalette />
       {/* Full-height flex container. In RTL, aside (first child) goes to the right. */}
       <div className="flex h-screen overflow-hidden bg-background">
         {/* Sidebar – right side in RTL */}

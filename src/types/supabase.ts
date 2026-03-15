@@ -221,6 +221,50 @@ export type Database = {
       };
 
 
+      // ── Broadcast Templates ───────────────────────────────
+      broadcast_templates: {
+        Row: {
+          id: string;
+          title: string;
+          message: string;
+          created_by: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          message: string;
+          created_by?: string | null;
+          created_at?: string;
+        };
+        Update: { title?: string; message?: string };
+        Relationships: [];
+      };
+
+      // ── Registration Requests ─────────────────────────────
+      registration_requests: {
+        Row: {
+          id: string;
+          username: string;
+          full_name: string;
+          enc_password: string;
+          status: "pending" | "approved" | "rejected";
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          username: string;
+          full_name: string;
+          enc_password: string;
+          status?: "pending" | "approved" | "rejected";
+          created_at?: string;
+        };
+        Update: {
+          status?: "pending" | "approved" | "rejected";
+        };
+        Relationships: [];
+      };
+
       // ── Call Scripts ──────────────────────────────────────
       call_scripts: {
         Row: {
@@ -338,6 +382,46 @@ export type Database = {
         Row: { broadcast_id: string; user_id: string; read_at: string };
         Insert: { broadcast_id: string; user_id: string; read_at?: string };
         Update: Record<string, never>;
+        Relationships: [];
+      };
+
+      // ── Daily Goals ───────────────────────────────────────
+      daily_goals: {
+        Row: {
+          id: string;
+          date: string;
+          goal_type: "team" | "individual";
+          target_user_id: string | null;
+          target_count: number;
+          status: "draft" | "active";
+          created_by: string | null;
+          created_at: string;
+          activated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          date?: string;
+          goal_type: "team" | "individual";
+          target_user_id?: string | null;
+          target_count: number;
+          status?: "draft" | "active";
+          created_by?: string | null;
+          created_at?: string;
+          activated_at?: string | null;
+        };
+        Update: {
+          target_count?: number;
+          status?: "draft" | "active";
+          activated_at?: string | null;
+        };
+        Relationships: [];
+      };
+
+      // ── Daily Appointment Counts ───────────────────────────
+      daily_appointment_counts: {
+        Row: { date: string; user_id: string; count: number };
+        Insert: { date?: string; user_id: string; count?: number };
+        Update: { count?: number };
         Relationships: [];
       };
 

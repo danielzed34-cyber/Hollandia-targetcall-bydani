@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Shield, User, Loader2, Pencil, Check, X, Clock } from "lucide-react";
+import { Shield, User, Loader2, Pencil, Check, X, Clock, AlertTriangle } from "lucide-react";
 
 interface UserProfile {
   id: string;
@@ -22,6 +22,7 @@ export function UsersTable() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [confirmRole, setConfirmRole] = useState<UserProfile | null>(null);
   const [editingNickname, setEditingNickname] = useState<Record<string, string>>({});
   const [editingHours, setEditingHours] = useState<Record<string, { start: string; end: string }>>({});
 
@@ -37,6 +38,7 @@ export function UsersTable() {
   useEffect(() => { load(); }, [load]);
 
   async function toggleRole(user: UserProfile) {
+    setConfirmRole(null);
     const newRole = user.role === "Admin" ? "Rep" : "Admin";
     setUpdating(user.id);
     try {
@@ -201,7 +203,7 @@ export function UsersTable() {
                       size="sm"
                       variant="outline"
                       disabled={updating === u.id}
-                      onClick={() => toggleRole(u)}
+                      onClick={() => setConfirmRole(u)}
                       className="text-xs"
                     >
                       {updating === u.id && !isEditingNick ? (
@@ -309,6 +311,26 @@ export function UsersTable() {
             );
           })}
         </div>
+
+        {/* ── Role change confirm banner ─────────────────────── */}
+        {confirmRole && (
+          <div className="mt-3 flex items-center gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.08] px-4 py-3">
+            <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0" />
+            <p className="flex-1 text-sm font-medium text-foreground">
+              לשנות את תפקיד{" "}
+              <strong>{confirmRole.nickname ?? confirmRole.full_name}</strong>{" "}
+              ל-{confirmRole.role === "Admin" ? "נציג" : "מנהל"}?
+            </p>
+            <div className="flex gap-2 shrink-0">
+              <Button size="sm" variant="outline" onClick={() => setConfirmRole(null)} className="text-xs">
+                ביטול
+              </Button>
+              <Button size="sm" onClick={() => toggleRole(confirmRole)} className="text-xs">
+                אישור
+              </Button>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Sun, Moon, Monitor } from "lucide-react";
+import { Sun, Moon, Monitor, Search } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,7 +23,8 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard/admin/users":   "ניהול משתמשים",
   "/dashboard/script":        "תסריט שיחה אישי",
   "/dashboard/admin/scripts": "אישור תסריטי שיחה",
-  "/dashboard/admin/shifts":  "סידור עבודה",
+  "/dashboard/admin/shifts":        "סידור עבודה",
+  "/dashboard/admin/registrations": "בקשות הרשמה",
 };
 
 export function Header() {
@@ -43,6 +44,19 @@ export function Header() {
       <h1 className="flex-1 text-[15px] font-semibold text-foreground tracking-tight truncate">
         {title}
       </h1>
+
+      {/* Ctrl+K hint button */}
+      <button
+        id="cmd-palette-trigger"
+        className="hidden sm:flex items-center gap-2 h-8 rounded-xl border border-border/60 bg-muted/40 px-3 text-xs text-muted-foreground hover:text-foreground hover:bg-muted transition-all duration-150"
+        onClick={() => {
+          document.dispatchEvent(new KeyboardEvent("keydown", { altKey: true, key: "h", bubbles: true }));
+        }}
+      >
+        <Search className="h-3.5 w-3.5" />
+        <span>חיפוש</span>
+        <kbd className="ms-1 rounded border border-border/60 bg-background px-1 text-[10px] font-mono">Alt H</kbd>
+      </button>
 
       <DropdownMenu>
         <DropdownMenuTrigger

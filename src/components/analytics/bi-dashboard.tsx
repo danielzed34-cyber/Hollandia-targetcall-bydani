@@ -10,7 +10,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   CalendarCheck, TrendingUp, TrendingDown, Users,
-  BarChart3, Coffee, Database, Star,
+  BarChart3, Coffee, Database, Star, Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -248,6 +248,43 @@ export function BIDashboard() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { void loadBreaks(breakPeriod); }, [loadBreaks, breakPeriod]);
 
+  function exportCSV() {
+    if (!stats) return;
+    const periodLabel = PERIOD_PRESETS.find(
+      (p) => p.from === period.from && p.to === period.to
+    )?.label ?? `${period.from} – ${period.to}`;
+
+    const lines: string[] = [];
+    // BOM for Excel Hebrew support
+    const bom = "\uFEFF";
+
+    lines.push(`דוח Analytics — ${periodLabel}`);
+    lines.push(`סה"כ פגישות,${stats.periodTotal}`);
+    lines.push(`ממוצע יומי,${stats.avgPerDay}`);
+    lines.push(`נציגים פעילים,${stats.activeRepCount}`);
+    lines.push("");
+
+    lines.push("סניף,פגישות");
+    stats.byBranch.forEach((b) => lines.push(`${b.branch},${b.count}`));
+    lines.push("");
+
+    lines.push("נציג,פגישות");
+    stats.byRep.forEach((r) => lines.push(`${r.rep},${r.count}`));
+    lines.push("");
+
+    lines.push("תאריך,פגישות");
+    stats.trend.forEach((t) => lines.push(`${t.date},${t.count}`));
+
+    const csv = bom + lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `analytics_${period.from}_${period.to}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const totalBranch = useMemo(
     () => Math.max(1, stats?.byBranch.reduce((s, b) => s + b.count, 0) ?? 1),
     [stats]
@@ -286,7 +323,16 @@ export function BIDashboard() {
             </p>
           )}
         </div>
-        <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={exportCSV}
+            disabled={!stats}
+            className="flex items-center gap-1.5 rounded-xl border border-border bg-card px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors disabled:opacity-40"
+          >
+            <Download className="h-3.5 w-3.5" />
+            ייצוא CSV
+          </button>
+          <div className="flex items-center gap-1 rounded-xl bg-muted/50 p-1">
           {PERIOD_PRESETS.map((p) => {
             const isActive = p.from === period.from && p.to === period.to;
             return (
@@ -304,6 +350,7 @@ export function BIDashboard() {
               </button>
             );
           })}
+          </div>
         </div>
       </div>
 

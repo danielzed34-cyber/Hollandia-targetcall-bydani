@@ -171,6 +171,7 @@ export function TasksManager() {
   const [targetAll, setTargetAll] = useState(true);
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -217,6 +218,7 @@ export function TasksManager() {
   }
 
   async function handleDelete(id: string) {
+    setConfirmDeleteId(null);
     const res = await fetch(`/api/admin/tasks/${id}`, { method: "DELETE" });
     if (res.ok) { toast.success("המשימה נמחקה"); load(); }
     else toast.error("שגיאה במחיקה");
@@ -234,6 +236,33 @@ export function TasksManager() {
 
   return (
     <div className="space-y-6">
+      {/* ── Delete confirmation dialog ──────────────────────── */}
+      <Dialog open={!!confirmDeleteId} onOpenChange={(open) => { if (!open) setConfirmDeleteId(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-base">
+              <AlertTriangle className="h-4 w-4 text-red-500" />
+              מחיקת משימה
+            </DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            פעולה זו תמחק את המשימה לצמיתות. האם להמשיך?
+          </p>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setConfirmDeleteId(null)}>
+              ביטול
+            </Button>
+            <Button
+              size="sm"
+              className="bg-red-500 hover:bg-red-600 text-white"
+              onClick={() => confirmDeleteId && handleDelete(confirmDeleteId)}
+            >
+              מחק
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <CompletionDialog
         task={selectedTask}
         profiles={profiles}
@@ -427,7 +456,7 @@ export function TasksManager() {
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7 text-muted-foreground hover:text-red-500 shrink-0 mt-0.5"
-                      onClick={() => handleDelete(task.id)}
+                      onClick={() => setConfirmDeleteId(task.id)}
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>

@@ -21,6 +21,7 @@ export async function GET() {
       .from("broadcasts")
       .select("id, message, created_at")
       .eq("broadcast_date", today)
+      .or(`target_all.eq.true,target_user_id.eq.${user.id}`)
       .order("created_at", { ascending: true }),
     supabase
       .from("broadcast_reads")
