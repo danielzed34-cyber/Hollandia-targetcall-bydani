@@ -220,45 +220,6 @@ export type Database = {
         Relationships: [];
       };
 
-      // ── Knowledge Base ────────────────────────────────────
-      kb_articles: {
-        Row: {
-          id: string;
-          title: string;
-          content: string;
-          category: string;
-          tags: string[];
-          status: "draft" | "pending_approval" | "approved" | "rejected";
-          image_url: string | null;
-          ai_generated: boolean;
-          created_by: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          title: string;
-          content: string;
-          category: string;
-          tags?: string[];
-          status?: "draft" | "pending_approval" | "approved" | "rejected";
-          image_url?: string | null;
-          ai_generated?: boolean;
-          created_by: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          title?: string;
-          content?: string;
-          category?: string;
-          tags?: string[];
-          status?: "draft" | "pending_approval" | "approved" | "rejected";
-          image_url?: string | null;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
 
       // ── Call Scripts ──────────────────────────────────────
       call_scripts: {

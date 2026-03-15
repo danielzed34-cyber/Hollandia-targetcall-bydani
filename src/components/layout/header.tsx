@@ -16,7 +16,6 @@ const ROUTE_TITLES: Record<string, string> = {
   "/dashboard/crm":       "תיאום פגישות",
   "/dashboard/feedback":  "משוב שיחה",
   "/dashboard/hr":        "שעון נוכחות ומשמרות",
-  "/dashboard/kb":        "בסיס ידע",
   "/dashboard/mentor":    "מנטור AI",
   "/dashboard/service":   "שירות לקוחות",
   "/dashboard/branches":  "מפת סניפים",

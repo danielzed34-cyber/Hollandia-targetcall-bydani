@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { useProductivityStore } from "@/stores/productivity-store";
 import {
-  CalendarPlus, Mic2, Clock, BookOpen, Bot, Headphones,
+  CalendarPlus, Mic2, Clock, Bot, Headphones,
   MapPin, BarChart3, Lightbulb, CalendarCheck, AlertCircle, TrendingUp, ScrollText,
 } from "lucide-react";
 import Link from "next/link";
@@ -16,8 +16,7 @@ const QUICK_LINKS = [
   { label: "תיאום פגישות", desc: "הוספת פגישה חדשה",     href: "/dashboard/crm",      icon: CalendarPlus, color: "text-blue-500",    bg: "bg-blue-500/10"    },
   { label: "משוב שיחה",    desc: "בקשת ניתוח שיחה",      href: "/dashboard/feedback", icon: Mic2,         color: "text-violet-500",  bg: "bg-violet-500/10"  },
   { label: "שעון נוכחות",  desc: "כניסה / יציאה",         href: "/dashboard/hr",       icon: Clock,        color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { label: "בסיס ידע",     desc: "נהלים ומידע מקצועי",    href: "/dashboard/kb",       icon: BookOpen,     color: "text-amber-500",   bg: "bg-amber-500/10"   },
-  { label: "מנטור AI",     desc: "שאל את המנטור",          href: "/dashboard/mentor",   icon: Bot,          color: "text-cyan-500",    bg: "bg-cyan-500/10"    },
+{ label: "מנטור AI",     desc: "שאל את המנטור",          href: "/dashboard/mentor",   icon: Bot,          color: "text-cyan-500",    bg: "bg-cyan-500/10"    },
   { label: "שירות לקוחות", desc: "פתיחת קריאת שירות",     href: "/dashboard/service",  icon: Headphones,   color: "text-rose-500",    bg: "bg-rose-500/10"    },
   { label: "מפת סניפים",   desc: "מצא את הסניף הקרוב",    href: "/dashboard/branches", icon: MapPin,       color: "text-orange-500",  bg: "bg-orange-500/10"  },
   { label: "תסריט שיחה",  desc: "בנה תסריט מותאם אישית",  href: "/dashboard/script",   icon: ScrollText,  color: "text-teal-500",    bg: "bg-teal-500/10"    },
@@ -27,14 +26,28 @@ const QUICK_LINKS = [
 export default function DashboardPage() {
   const { profile, role } = useAuth();
   const [dailyTip, setDailyTip] = useState<string | null>(null);
-  const { appointmentsToday, complaintsToday, sessionStart } = useProductivityStore();
+  const { appointmentsToday, complaintsToday } = useProductivityStore();
+  const [clockInTime, setClockInTime] = useState<string | null>(null);
+  const [tick, setTick] = useState(0);
+
+  const fetchClockIn = useCallback(async () => {
+    try {
+      const res = await fetch("/api/hr/clock");
+      if (!res.ok) return;
+      const data = await res.json() as { status: string; lastEvent: string | null };
+      if (data.status === "clocked_in" && data.lastEvent) setClockInTime(data.lastEvent);
+    } catch { /* non-critical */ }
+  }, []);
 
   useEffect(() => {
     fetch("/api/daily-tip")
       .then((r) => r.json())
       .then((d: { tip: string | null }) => { if (d.tip) setDailyTip(d.tip); })
       .catch(() => {});
-  }, []);
+    void fetchClockIn();
+    const interval = setInterval(() => setTick((t) => t + 1), 60_000);
+    return () => clearInterval(interval);
+  }, [fetchClockIn]);
 
   const greeting = () => {
     const h = new Date().getHours();
@@ -43,13 +56,14 @@ export default function DashboardPage() {
     return "ערב טוב";
   };
 
-  const elapsedMs = sessionStart ? Date.now() - sessionStart : 0;
-  const elapsedH = Math.floor(elapsedMs / 3_600_000);
-  const elapsedM = Math.floor((elapsedMs % 3_600_000) / 60_000);
-  const sessionNum = sessionStart
-    ? elapsedH > 0 ? `${elapsedH}:${String(elapsedM).padStart(2, "0")}` : `${elapsedM}`
-    : "—";
-  const sessionUnit = sessionStart ? (elapsedH > 0 ? "שע׳" : "דק׳") : "";
+  void tick;
+  const shiftDisplay = (() => {
+    if (!clockInTime) return "--:--";
+    const diff = Math.max(0, Math.floor((Date.now() - new Date(clockInTime).getTime()) / 1000));
+    const h = Math.floor(diff / 3600);
+    const m = Math.floor((diff % 3600) / 60);
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  })();
 
   const visible = QUICK_LINKS.filter((l) => !l.adminOnly || role === "Admin");
   const firstName = (profile?.nickname ?? profile?.full_name)?.split(" ")[0] ?? "";
@@ -134,16 +148,9 @@ export default function DashboardPage() {
           <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-muted-foreground">
             זמן פעילות
           </p>
-          <div className="mt-2 flex items-end gap-2 leading-none">
-            <p className="text-6xl font-black text-foreground tabular-nums tracking-tight font-mono leading-none">
-              {sessionNum}
-            </p>
-            {sessionUnit && (
-              <span className="text-2xl font-bold text-muted-foreground/60 mb-0.5">
-                {sessionUnit}
-              </span>
-            )}
-          </div>
+          <p className="mt-2 text-6xl font-black text-foreground tabular-nums tracking-tight font-mono leading-none">
+            {shiftDisplay}
+          </p>
           <div className="mt-5 flex items-center gap-2">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
             <span className="text-xs font-semibold text-muted-foreground">סשן פעיל</span>
